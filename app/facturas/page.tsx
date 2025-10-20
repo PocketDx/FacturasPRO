@@ -5,6 +5,8 @@ import { Invoice, Client, InvoiceItem, BillingStatus } from '../types';
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getClients, generateId } from '../utils/storage';
 import { formatCurrency, formatDate } from '../utils/calculations';
 import Link from 'next/link';
+import Toast, { ToastType } from '../components/Toast';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function FacturasPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -12,6 +14,11 @@ export default function FacturasPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; invoiceId: string | null }>({
+    show: false,
+    invoiceId: null,
+  });
   
   const [formData, setFormData] = useState({
     clientId: '',
@@ -77,7 +84,7 @@ export default function FacturasPage() {
     
     const client = clients.find(c => c.id === formData.clientId);
     if (!client) {
-      alert('Por favor selecciona un cliente');
+      setToast({ message: 'Por favor selecciona un cliente', type: 'error' });
       return;
     }
 
@@ -99,6 +106,7 @@ export default function FacturasPage() {
         updatedAt: new Date(),
       };
       updateInvoice(updatedInvoice);
+      setToast({ message: 'Factura actualizada exitosamente', type: 'success' });
     } else {
       // Generate sequential invoice number
       const existingInvoices = getInvoices();
@@ -130,6 +138,7 @@ export default function FacturasPage() {
         updatedAt: new Date(),
       };
       addInvoice(newInvoice);
+      setToast({ message: `Factura ${invoiceNumber} creada exitosamente`, type: 'success' });
     }
 
     resetForm();
@@ -163,15 +172,22 @@ export default function FacturasPage() {
   };
 
   const handleDelete = (invoiceId: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar esta factura?')) {
-      deleteInvoice(invoiceId);
+    setConfirmDelete({ show: true, invoiceId });
+  };
+
+  const confirmDeleteInvoice = () => {
+    if (confirmDelete.invoiceId) {
+      deleteInvoice(confirmDelete.invoiceId);
+      setToast({ message: 'Factura eliminada exitosamente', type: 'success' });
       loadData();
     }
+    setConfirmDelete({ show: false, invoiceId: null });
   };
 
   const handleStatusChange = (invoice: Invoice, newStatus: BillingStatus) => {
     const updatedInvoice = { ...invoice, status: newStatus, updatedAt: new Date() };
     updateInvoice(updatedInvoice);
+    setToast({ message: `Estado cambiado a ${newStatus}`, type: 'info' });
     loadData();
   };
 
@@ -192,6 +208,28 @@ export default function FacturasPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete.show && (
+        <ConfirmModal
+          title="Eliminar Factura"
+          message="¿Estás seguro de que deseas eliminar esta factura? Esta acción no se puede deshacer."
+          onConfirm={confirmDeleteInvoice}
+          onCancel={() => setConfirmDelete({ show: false, invoiceId: null })}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

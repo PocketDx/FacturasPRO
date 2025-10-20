@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Client } from '../types';
 import { getClients, addClient, updateClient, deleteClient, generateId } from '../utils/storage';
 import Link from 'next/link';
+import Toast, { ToastType } from '../components/Toast';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ClientesPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -15,6 +17,11 @@ export default function ClientesPage() {
     phone: '',
     address: '',
     taxId: '',
+  });
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; clientId: string | null }>({
+    show: false,
+    clientId: null,
   });
 
   useEffect(() => {
@@ -36,6 +43,7 @@ export default function ClientesPage() {
         ...formData,
       };
       updateClient(updatedClient);
+      setToast({ message: 'Cliente actualizado exitosamente', type: 'success' });
     } else {
       // Add new client
       const newClient: Client = {
@@ -44,6 +52,7 @@ export default function ClientesPage() {
         createdAt: new Date(),
       };
       addClient(newClient);
+      setToast({ message: 'Cliente creado exitosamente', type: 'success' });
     }
 
     // Reset form
@@ -66,10 +75,16 @@ export default function ClientesPage() {
   };
 
   const handleDelete = (clientId: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-      deleteClient(clientId);
+    setConfirmDelete({ show: true, clientId });
+  };
+
+  const confirmDeleteClient = () => {
+    if (confirmDelete.clientId) {
+      deleteClient(confirmDelete.clientId);
+      setToast({ message: 'Cliente eliminado exitosamente', type: 'success' });
       loadClients();
     }
+    setConfirmDelete({ show: false, clientId: null });
   };
 
   const handleCancel = () => {
@@ -80,6 +95,28 @@ export default function ClientesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete.show && (
+        <ConfirmModal
+          title="Eliminar Cliente"
+          message="¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer."
+          onConfirm={confirmDeleteClient}
+          onCancel={() => setConfirmDelete({ show: false, clientId: null })}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
