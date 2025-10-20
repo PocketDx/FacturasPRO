@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '../utils/calculations';
 import Link from 'next/link';
 import Toast, { ToastType } from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+import EmailModal from '../components/EmailModal';
 
 export default function FacturasPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -14,6 +15,7 @@ export default function FacturasPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [emailInvoice, setEmailInvoice] = useState<Invoice | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ show: boolean; invoiceId: string | null }>({
     show: false,
@@ -191,6 +193,16 @@ export default function FacturasPage() {
     loadData();
   };
 
+  const handleSendEmail = (emailData: { to: string; subject: string; message: string }) => {
+    // Simulate email sending (in production, this would call an API endpoint)
+    console.log('Enviando email:', emailData);
+    setToast({ 
+      message: `Email enviado exitosamente a ${emailData.to}`, 
+      type: 'success' 
+    });
+    setEmailInvoice(null);
+  };
+
   const getStatusColor = (status: BillingStatus) => {
     switch (status) {
       case BillingStatus.PAID:
@@ -227,6 +239,15 @@ export default function FacturasPage() {
           confirmText="Eliminar"
           cancelText="Cancelar"
           type="danger"
+        />
+      )}
+
+      {/* Email Modal */}
+      {emailInvoice && (
+        <EmailModal
+          invoice={emailInvoice}
+          onClose={() => setEmailInvoice(null)}
+          onSend={handleSendEmail}
         />
       )}
 
@@ -535,6 +556,16 @@ export default function FacturasPage() {
 
                 <div className="mt-6 pt-6 border-t flex justify-end gap-4">
                   <button
+                    onClick={() => {
+                      setEmailInvoice(selectedInvoice);
+                      setSelectedInvoice(null);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <span>📧</span>
+                    <span>Enviar por Email</span>
+                  </button>
+                  <button
                     onClick={() => setSelectedInvoice(null)}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   >
@@ -620,6 +651,13 @@ export default function FacturasPage() {
                           className="text-blue-600 hover:text-blue-900 mr-4"
                         >
                           Ver
+                        </button>
+                        <button
+                          onClick={() => setEmailInvoice(invoice)}
+                          className="text-green-600 hover:text-green-900 mr-4"
+                          title="Enviar por email"
+                        >
+                          📧
                         </button>
                         <button
                           onClick={() => handleEdit(invoice)}
