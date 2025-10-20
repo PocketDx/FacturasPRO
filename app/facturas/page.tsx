@@ -100,7 +100,18 @@ export default function FacturasPage() {
       };
       updateInvoice(updatedInvoice);
     } else {
-      const invoiceNumber = `F-${Date.now()}`;
+      // Generate sequential invoice number
+      const existingInvoices = getInvoices();
+      const maxNumber = existingInvoices.reduce((max, inv) => {
+        const match = inv.invoiceNumber.match(/F-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          return num > max ? num : max;
+        }
+        return max;
+      }, 0);
+      const invoiceNumber = `F-${String(maxNumber + 1).padStart(6, '0')}`;
+      
       const newInvoice: Invoice = {
         id: generateId(),
         invoiceNumber,
